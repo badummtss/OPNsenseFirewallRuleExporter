@@ -4,13 +4,24 @@ from openpyxl.worksheet.table import Table, TableStyleInfo
 from openpyxl.comments import Comment
 
 # Function to extract aliases from the XML
+# def extract_aliases(root):
+#     aliases = {}
+#     for alias in root.findall('.//alias'):
+#         name = alias.find('name').text
+#         content = alias.find('content').text if alias.find('content') is not None else ''
+#         aliases[name] = content  # Store only the name and content
+#     return aliases
 def extract_aliases(root):
     aliases = {}
     for alias in root.findall('.//alias'):
-        name = alias.find('name').text
+        name_elem = alias.find('name')
+        if name_elem is None or name_elem.text is None:
+            continue  # Skip aliases with no <name> tag or empty name
+        name = name_elem.text.strip()
         content = alias.find('content').text if alias.find('content') is not None else ''
-        aliases[name] = content  # Store only the name and content
+        aliases[name] = content
     return aliases
+
 
 # Function to extract interface descriptions from the XML
 def get_interface_mapping(root):
@@ -57,8 +68,12 @@ def parse_firewall_rules(xml_file):
         source_ip = interface_mapping.get(source_ip, source_ip)
 
         # Check if <not>1</not> exists for source
-        if source.find('not') is not None and source.find('not').text == '1':
+        # if source.find('not') is not None and source.find('not').text == '1':
+        #     source_ip = '!' + source_ip
+        # Check if <not>1</not> exists for source
+        if source is not None and source.find('not') is not None and source.find('not').text == '1':
             source_ip = '!' + source_ip
+
 
         # Extract destination details
         destination = rule.find('destination')
@@ -73,8 +88,11 @@ def parse_firewall_rules(xml_file):
         destination_ip = interface_mapping.get(destination_ip, destination_ip)
 
         # Check if <not>1</not> exists for destination
+        # if destination is not None and destination.find('not') is not None and destination.find('not').text == '1':
+        #     destination_ip = '!' + destination_ip
         if destination is not None and destination.find('not') is not None and destination.find('not').text == '1':
             destination_ip = '!' + destination_ip
+
 
         # Extract gateway and schedule, and replace "none" with "*"
         gateway = rule.find('gateway').text if rule.find('gateway') is not None else '*'
@@ -174,8 +192,8 @@ def write_to_excel(data_by_interface, aliases, output_file):
 
 # Main function to execute the process
 def main():
-    xml_file = r'C:\GitHub\opnsense\config-opnsense.xml'  # Path to your XML file
-    output_file = 'firewall_rules_by_interface.xlsx'  # Name of the output Excel file
+    xml_file = r'/Volumes/WORK/Downloads/config-OPNsense.xml'  # Path to your XML file
+    output_file = '/Volumes/WORK/Downloads/firewall_rules_by_interface.xlsx'  # Name of the output Excel file
 
     # Parse the XML and get the firewall rules by interface
     rules_by_interface, aliases = parse_firewall_rules(xml_file)
